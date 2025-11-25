@@ -38,7 +38,7 @@ header {
     justify-content: space-between;
     align-items: center;
     background-color: #5b3b3a;
-    padding: 10px 40px;
+    padding: 58px 40px;
     width: 100%;
     gap: 20px;
     overflow-x: auto;
@@ -84,6 +84,7 @@ nav a {
     color: #fff;
     white-space: nowrap;
     transition: opacity 0.3s;
+    font-size: 15px;
 }
 
 nav a:hover {
