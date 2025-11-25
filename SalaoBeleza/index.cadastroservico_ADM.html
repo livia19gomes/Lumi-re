@@ -102,7 +102,7 @@
       };
 
       try {
-        const response = await fetch("http://10.92.3.171:5000/agenda", {
+        const response = await fetch("http://10.92.3.187:5000/agenda", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(dados)
@@ -141,7 +141,7 @@
       const select = document.getElementById("id_servico");
 
       try {
-        const response = await fetch("http://10.92.3.171:5000/servico", {
+        const response = await fetch("http://10.92.3.187:5000/servico", {
           method: "GET",
           headers: {
             "Authorization": `Bearer ${token}`

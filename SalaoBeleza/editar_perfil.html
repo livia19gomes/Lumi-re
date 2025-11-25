@@ -103,7 +103,7 @@
       // BUSCAR DADOS DO USUÁRIO
     
       try {
-        const response = await fetch(`http://10.92.3.171:5000/cadastro/${usuarioId}`, {
+        const response = await fetch(`http://10.92.3.187:5000/cadastro/${usuarioId}`, {
           method: "GET",
           headers: {
             "Authorization": "Bearer " + token
@@ -157,7 +157,7 @@
         const dados = { nome, email, telefone, senha };
 
         try {
-          const response = await fetch(`http://10.92.3.171:5000/cadastro/${usuarioId}`, {
+          const response = await fetch(`http://10.92.3.187:5000/cadastro/${usuarioId}`, {
             method: "PUT",
             headers: {
               "Content-Type": "application/json",

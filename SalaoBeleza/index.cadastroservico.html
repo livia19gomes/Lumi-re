@@ -21,7 +21,7 @@
   <header>
     <img src="assets/img/logo.png" alt="LUMIÉRE - Beleza | Estética | Bem-estar" class="logo">
     <nav>
-      <a class="logoutcabecalho" style="cursor: pointer;">LOGOUT</a>
+      <a class="logoutcabecalho btn-logout" style="cursor: pointer;">LOGOUT</a>
       <a href="edicao_dados.html">EDIÇÃO DE DADOS</a>
       <a href="cadastroservico.html">CADASTRAR SERVIÇOS</a>
       <a href="index.cadastroservico.html">CADASTRAR AGENDAMENTO</a>
@@ -90,19 +90,19 @@
       const [ano, mes, dia] = partes[0].split('-');
       const hora = partes[1];
 
-      const data_hora = `${dia}-${mes}-${ano} ${hora}:00`;
+      const data_hora = `${ano}-${mes}-${dia} ${hora}:00`;
 
       // Obtendo o 'id_cadastro' do localStorage 
       const id_cadastro = localStorage.getItem("id_cadastro"); 
 
       const dados = {
-        id_cadastro: id_cadastro,  
+        id_profissional: id_cadastro,  
         id_servico: document.getElementById("id_servico").value,
         data_hora: data_hora
       };
 
       try {
-        const response = await fetch("http://10.92.3.171:5000/agenda", {
+        const response = await fetch("http://10.92.3.187:5000/agenda", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(dados)
@@ -141,7 +141,7 @@
       const select = document.getElementById("id_servico");
 
       try {
-        const response = await fetch("http://10.92.3.171:5000/servico", {
+        const response = await fetch("http://10.92.3.187:5000/servico", {
           method: "GET",
           headers: {
             "Authorization": `Bearer ${token}`
