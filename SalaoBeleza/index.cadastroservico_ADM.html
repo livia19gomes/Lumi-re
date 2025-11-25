@@ -1,58 +1,59 @@
 <!DOCTYPE html>
 <html lang="pt-br">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lumiére - Cadastro de serviços</title>
+  <title>Lumiére - Cadastro de Serviços</title>
   <link rel="stylesheet" href="assets/css/index.cadastroservico.css">
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-
-  <link
-    href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Playfair+Display:ital,wght@1,700&display=swap"
-    rel="stylesheet">
-
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Playfair+Display:ital,wght@1,700&display=swap" rel="stylesheet">
   <script src="assets/js/seguranca.js" defer></script>
-
 </head>
-
 <body>
   <header>
     <img src="assets/img/logo.png" alt="LUMIÉRE - Beleza | Estética | Bem-estar" class="logo">
     <nav>
-      <a class="logoutcabecalho" style="cursor: pointer;">LOGOUT</a>
-      <a href="edicao_dados_ADM.html">EDIÇÃO DE DADOS</a>
-      <a href="cadastroservico_ADM(profissional).html">CADASTRAR SERVIÇOS</a>
-      <a href="index.cadastroservico_ADM.html">CADASTRAR AGENDAMENTO</a>
-      <a href="painel_administrativo_ADM.html">PAINEL ADMINISTRATIVO</a>
-      <a href="painel_profissional_ADM.html">PAINEL PROFISSIONAL</a>
-      <a href="listagem_adm.html">LISTAGEM</a>
+      <a class="logoutcabecalho btn-logout" style="cursor: pointer;">LOGOUT</a>
+      <a href="edicao_dados.html">EDIÇÃO DE DADOS</a>
+      <a href="cadastroservico.html">CADASTRAR SERVIÇOS</a>
+      <a href="index.cadastroservico.html">CADASTRAR AGENDAMENTO</a>
+      <a href="painel_profissional.html">PAINEL PROFISSIONAL</a>
+      <a href="painel_administrativo.html">PAINEL ADMINISTRATIVO</a>
+      <a href="listagem.html">LISTAGEM</a>
     </nav>
   </header>
 
   <section class="cadastro-container">
     <div class="decorative-line">
-      <h1><span style="color:#fff;">Sucesso!</span></h1>
-      <p class="subtitulo">Realize aqui o cadastro de seus agendamentos</p>
+      <h1><span style="color:#fff;">Disponibilidade</span></h1>
+      <p class="subtitulo">Cadastre seu horário de trabalho</p>
     </div>
 
-    <!-- Formulário -->
+    <!-- Formulário de Disponibilidade -->
     <form class="form-cadastro">
       <div class="form-group">
-        <label for="id_servico">SERVIÇOS</label>
-        <select id="id_servico" class="selecionar" required>
-          <option value="">Selecione seu serviço ></option>
+        <label for="dia_semana">DIA DA SEMANA</label>
+        <select id="dia_semana" class="selecionar" required>
+          <option value="">Selecione...</option>
+          <option value="1">Segunda</option>
+          <option value="2">Terça</option>
+          <option value="3">Quarta</option>
+          <option value="4">Quinta</option>
+          <option value="5">Sexta</option>
+          <option value="6">Sábado</option>
+          <option value="7">Domingo</option>
         </select>
       </div>
-
       <div class="form-group">
-        <label for="data_hora">DATA E HORÁRIO</label>
-        <input type="datetime-local" id="data_hora" required>
+        <label for="hora_inicio">HORA INÍCIO</label>
+        <input type="time" id="hora_inicio" class="selecionarD" required>
       </div>
-
+      <div class="form-group">
+        <label for="hora_fim">HORA FIM</label>
+        <input type="time" id="hora_fim" class="selecionarD" required>
+      </div>
       <div class="form-actions">
-        <p class="aviso">*Verifique se todos os dados foram informados corretamente antes de enviar.</p>
         <button type="submit" class="btn-enviar">ENVIAR</button>
       </div>
     </form>
@@ -70,7 +71,164 @@
           <span>Avenida das flores</span>
         </div>
       </div>
+      <div class="footer-center">
+        <img src="assets/img/logo.png" alt="Logo Lumiére" class="logo">
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2025. Todos os direitos reservados.</span>
+    </div>
+  </footer>
 
+  <script>
+    // Cadastro de disponibilidade - ENVIE ESTE SCRIPT COMPLETO AO FINAL DO SEU HTML
+    document.querySelector(".form-cadastro").addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+    const dia_semana = document.getElementById("dia_semana").value;
+    const hora_inicio = document.getElementById("hora_inicio").value;
+    const hora_fim = document.getElementById("hora_fim").value;
+    const id_cadastro = localStorage.getItem("id_cadastro");
+
+    if (!dia_semana || !hora_inicio || !hora_fim || !id_cadastro) {
+      Swal.fire({
+        icon: "error",
+        title: "Erro",
+        text: "Todos os campos são obrigatórios!"
+      });
+      return;
+    }
+
+    // FORMATO QUE O BACKEND ESPERA:
+    const dados = {
+      id_cadastro,
+      dias: [{
+        dia_semana,
+        hora_inicio,
+        hora_fim
+      }]
+    };
+
+    try {
+      const response = await fetch("http://10.92.3.187:5000/disponibilidade/profissional", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(dados)
+      });
+      // resto igual...
+
+
+        if (response.ok) {
+          const result = await response.json();
+          Swal.fire({
+            icon: "success",
+            title: "Sucesso!",
+            text: result.message
+          }).then(() => {
+            window.location.href = "painel_profissional.html";
+          });
+        } else {
+          const error = await response.json();
+          Swal.fire({
+            icon: "error",
+            title: "Oops...",
+            text: error.error || "Erro ao cadastrar disponibilidade!"
+          });
+        }
+      } catch (err) {
+        Swal.fire({
+          icon: "error",
+          title: "Falha na conexão",
+          text: "Não foi possível conectar ao servidor."
+        });
+      }
+    });
+
+    // Script de logout permanece igual ao seu
+    document.addEventListener('DOMContentLoaded', function () {
+      const logoutBtn = document.querySelector('.btn-logout');
+      if (!logoutBtn) return;
+      logoutBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        Swal.fire({
+          title: 'Deseja realmente sair?',
+          text: 'Você precisará fazer login novamente.',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'SIM',
+          cancelButtonText: 'NÃO',
+          reverseButtons: true
+        }).then((result) => {
+          if (result.isConfirmed) {
+            try {
+              localStorage.removeItem('token');
+              sessionStorage.removeItem('token');
+              document.cookie = 'session=; Max-Age=0; path=/;';
+              Swal.fire({
+                icon: 'success',
+                title: 'Desconectado',
+                showConfirmButton: false,
+                timer: 1200
+              }).then(() => {
+                window.location.href = 'login.html';
+              });
+            } catch (err) {
+              Swal.fire('Erro', 'Não foi possível deslogar. Tente novamente.', 'error');
+            }
+          }
+        });
+      });
+    });
+  </script>    <img src="assets/img/logo.png" alt="LUMIÉRE - Beleza | Estética | Bem-estar" class="logo">
+    <nav>
+      <a class="logoutcabecalho btn-logout" style="cursor: pointer;">LOGOUT</a>
+      <a href="edicao_dados_ADM.html">EDIÇÃO DE DADOS</a>
+      <a href="cadastroservico_ADM(profissional).html">CADASTRAR SERVIÇOS</a>
+      <a href="index.cadastroservico_ADM.html">CADASTRAR AGENDAMENTO</a>
+      <a href="painel_administrativo_ADM.html">PAINEL ADMINISTRATIVO</a>
+      <a href="painel_profissional_ADM.html">PAINEL PROFISSIONAL</a>
+      <a href="listagem_adm.html">LISTAGEM</a>
+    </nav>
+  </header>
+
+  <section class="cadastro-container">
+    <div class="decorative-line">
+      <h1><span style="color:#fff;">Cadastro de Serviços</span></h1>
+      <p class="subtitulo">Cadastre aqui um novo serviço do salão</p>
+    </div>
+
+    <!-- Formulário de Cadastro de Serviço -->
+    <form class="form-cadastro">
+      <div class="form-group">
+        <label for="descricao">NOME DO SERVIÇO</label>
+        <input type="text" id="descricao" class="selecionar" required placeholder="Ex: Corte de cabelo">
+      </div>
+      <div class="form-group">
+        <label for="valor">VALOR (R$)</label>
+        <input type="number" id="valor" class="selecionarD" step="0.01" required placeholder="Ex: 30.00">
+      </div>
+      <div class="form-group">
+        <label for="duracao_horas">DURAÇÃO (minutos)</label>
+        <input type="number" id="duracao_horas" class="selecionarD" step="1" min="1" required placeholder="Ex: 60">
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn-enviar">ENVIAR</button>
+      </div>
+    </form>
+  </section>
+
+  <footer class="footer">
+    <div class="footer1">
+      <div class="footer-left">
+        <div class="contact">
+          <img src="assets/img/celular.icon.png" alt="Telefone" class="icon">
+          <span>(18)000000000</span>
+        </div>
+        <div class="contact">
+          <img src="assets/img/location-icon.png" alt="Localização" class="icon">
+          <span>Avenida das flores</span>
+        </div>
+      </div>
       <div class="footer-center">
         <img src="assets/img/logo.png" alt="Logo Lumiére" class="logo">
       </div>
@@ -84,25 +242,27 @@
     document.querySelector(".form-cadastro").addEventListener("submit", async (e) => {
       e.preventDefault();
 
-      const dataHoraInput = document.getElementById("data_hora").value; // '2025-12-12T12:00'
+      const descricao = document.getElementById("descricao").value;
+      const valor = document.getElementById("valor").value;
+      const duracao_horas = document.getElementById("duracao_horas").value;
 
-      const partes = dataHoraInput.split('T'); // ['2025-12-12', '12:00']
-      const [ano, mes, dia] = partes[0].split('-');
-      const hora = partes[1];
-
-      const data_hora = `${dia}-${mes}-${ano} ${hora}:00`;
-
-      // Obtendo o 'id_cadastro' do localStorage
-      const id_cadastro = localStorage.getItem("id_cadastro");
+      if (!descricao || !valor || !duracao_horas) {
+        Swal.fire({
+          icon: "error",
+          title: "Erro",
+          text: "Todos os campos são obrigatórios!"
+        });
+        return;
+      }
 
       const dados = {
-        id_cadastro: id_cadastro,  
-        id_servico: document.getElementById("id_servico").value,
-        data_hora: data_hora
+        descricao,
+        valor: parseFloat(valor),
+        duracao_horas: parseInt(duracao_horas) // minutos
       };
 
       try {
-        const response = await fetch("http://10.92.3.187:5000/agenda", {
+        const response = await fetch("http://10.92.3.187:5000/servico", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(dados)
@@ -113,9 +273,9 @@
           Swal.fire({
             icon: "success",
             title: "Sucesso!",
-            text: result.message
+            text: result.message || "Serviço cadastrado com sucesso!"
           }).then(() => {
-            window.location.href = "painel_profissional.html";
+            window.location.reload();
           });
         } else {
           const error = await response.json();
@@ -133,75 +293,13 @@
         });
       }
     });
-  </script>
 
-  <script>
-    document.addEventListener("DOMContentLoaded", async () => {
-      const token = localStorage.getItem("token");
-      const select = document.getElementById("id_servico");
-
-      try {
-        const response = await fetch("http://10.92.3.187:5000/servico", {
-          method: "GET",
-          headers: {
-            "Authorization": `Bearer ${token}`
-          }
-        });
-
-        if (!response.ok) throw new Error("Erro ao buscar serviços");
-
-        const servicos = await response.json();
-        select.innerHTML = `<option value="">Selecione o serviço ></option>`;
-
-        if (!servicos.length) {
-          select.innerHTML += `<option disabled>Nenhum serviço cadastrado</option>`;
-          return;
-        }
-
-        servicos.forEach(s => {
-          // número decimal
-          let duracao = s.duracao_horas;
-          if (duracao !== null && !isNaN(duracao)) {
-            const horas = Math.floor(duracao);
-            const minutos = Math.round((duracao - horas) * 60);
-            duracao = `${String(horas).padStart(2, "0")}:${String(minutos).padStart(2, "0")}`;
-          } else if (typeof duracao === "string") {
-            // 
-            duracao = duracao.substring(0, 5);
-          } else {
-            duracao = "00:00";
-          }
-
-          const option = document.createElement("option");
-          option.value = s.id_servico;
-          option.textContent = `${s.descricao} — R$${s.valor.toFixed(2)} — ${duracao}`;
-          select.appendChild(option);
-        });
-
-      } catch (error) {
-        console.error("Erro ao carregar serviços:", error);
-        Swal.fire({
-          title: "Erro!",
-          text: "Não foi possível carregar os serviços.",
-          icon: "error"
-        });
-      }
-    });
-  </script>
-
-  <script>
+    // Script de logout permanece igual
     document.addEventListener('DOMContentLoaded', function () {
       const logoutBtn = document.querySelector('.btn-logout');
-
-      if (!logoutBtn) {
-        console.error('Botão de logout não encontrado (seletor .btn-logout).');
-        return;
-      }
-
+      if (!logoutBtn) return;
       logoutBtn.addEventListener('click', function (e) {
         e.preventDefault();
-
-        // Confirmação com SweetAlert2
         Swal.fire({
           title: 'Deseja realmente sair?',
           text: 'Você precisará fazer login novamente.',
@@ -213,14 +311,9 @@
         }).then((result) => {
           if (result.isConfirmed) {
             try {
-              // Remova o token 
-              localStorage.removeItem('token');        // chave mais comum
-              sessionStorage.removeItem('token');      
-
-              // Apagar cookie de sessão 
+              localStorage.removeItem('token');
+              sessionStorage.removeItem('token');
               document.cookie = 'session=; Max-Age=0; path=/;';
-
-              // Mensagem de sucesso e redirecionamento
               Swal.fire({
                 icon: 'success',
                 title: 'Desconectado',
@@ -230,17 +323,12 @@
                 window.location.href = 'login.html';
               });
             } catch (err) {
-              console.error('Erro ao efetuar logout:', err);
               Swal.fire('Erro', 'Não foi possível deslogar. Tente novamente.', 'error');
             }
-          } else {
-            // usuário cancelou — não faz nada
           }
         });
       });
     });
   </script>
-
 </body>
-
 </html>

@@ -1,22 +1,15 @@
 <!DOCTYPE html>
 <html lang="pt-br">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lumiére - Cadastro de serviços</title>
+  <title>Lumiére - Cadastro de Disponibilidade</title>
   <link rel="stylesheet" href="assets/css/index.cadastroservico.css">
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-
-  <link
-    href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Playfair+Display:ital,wght@1,700&display=swap"
-    rel="stylesheet">
-
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Playfair+Display:ital,wght@1,700&display=swap" rel="stylesheet">
   <script src="assets/js/seguranca.js" defer></script>
-
 </head>
-
 <body>
   <header>
     <img src="assets/img/logo.png" alt="LUMIÉRE - Beleza | Estética | Bem-estar" class="logo">
@@ -33,26 +26,34 @@
 
   <section class="cadastro-container">
     <div class="decorative-line">
-      <h1><span style="color:#fff;">Sucesso!</span></h1>
-      <p class="subtitulo">Realize aqui o cadastro de seus agendamentos</p>
+      <h1><span style="color:#fff;">Disponibilidade</span></h1>
+      <p class="subtitulo">Cadastre seu horário de trabalho</p>
     </div>
 
-    <!-- Formulário -->
+    <!-- Formulário de Disponibilidade -->
     <form class="form-cadastro">
       <div class="form-group">
-        <label for="id_servico">SERVIÇOS</label>
-        <select id="id_servico" class="selecionar" required>
-          <option value="">Selecione seu serviço ></option>
+        <label for="dia_semana">DIA DA SEMANA</label>
+        <select id="dia_semana" class="selecionar" required>
+          <option value="">Selecione...</option>
+          <option value="1">Segunda</option>
+          <option value="2">Terça</option>
+          <option value="3">Quarta</option>
+          <option value="4">Quinta</option>
+          <option value="5">Sexta</option>
+          <option value="6">Sábado</option>
+          <option value="7">Domingo</option>
         </select>
       </div>
-
       <div class="form-group">
-        <label for="data_hora">DATA E HORÁRIO</label>
-        <input type="datetime-local" id="data_hora" class="selecionarD" required>
+        <label for="hora_inicio">HORA INÍCIO</label>
+        <input type="time" id="hora_inicio" class="selecionarD" required>
       </div>
-
+      <div class="form-group">
+        <label for="hora_fim">HORA FIM</label>
+        <input type="time" id="hora_fim" class="selecionarD" required>
+      </div>
       <div class="form-actions">
-        <p class="aviso">*Verifique se todos os dados foram informados corretamente antes de enviar.</p>
         <button type="submit" class="btn-enviar">ENVIAR</button>
       </div>
     </form>
@@ -70,7 +71,6 @@
           <span>Avenida das flores</span>
         </div>
       </div>
-
       <div class="footer-center">
         <img src="assets/img/logo.png" alt="Logo Lumiére" class="logo">
       </div>
@@ -81,32 +81,42 @@
   </footer>
 
   <script>
+    // Cadastro de disponibilidade - ENVIE ESTE SCRIPT COMPLETO AO FINAL DO SEU HTML
     document.querySelector(".form-cadastro").addEventListener("submit", async (e) => {
       e.preventDefault();
 
-      const dataHoraInput = document.getElementById("data_hora").value; // '2025-12-12T12:00'
+    const dia_semana = document.getElementById("dia_semana").value;
+    const hora_inicio = document.getElementById("hora_inicio").value;
+    const hora_fim = document.getElementById("hora_fim").value;
+    const id_cadastro = localStorage.getItem("id_cadastro");
 
-      const partes = dataHoraInput.split('T'); // ['2025-12-12', '12:00']
-      const [ano, mes, dia] = partes[0].split('-');
-      const hora = partes[1];
+    if (!dia_semana || !hora_inicio || !hora_fim || !id_cadastro) {
+      Swal.fire({
+        icon: "error",
+        title: "Erro",
+        text: "Todos os campos são obrigatórios!"
+      });
+      return;
+    }
 
-      const data_hora = `${ano}-${mes}-${dia} ${hora}:00`;
+    // FORMATO QUE O BACKEND ESPERA:
+    const dados = {
+      id_cadastro,
+      dias: [{
+        dia_semana,
+        hora_inicio,
+        hora_fim
+      }]
+    };
 
-      // Obtendo o 'id_cadastro' do localStorage 
-      const id_cadastro = localStorage.getItem("id_cadastro"); 
+    try {
+      const response = await fetch("http://10.92.3.187:5000/disponibilidade/profissional", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(dados)
+      });
+      // resto igual...
 
-      const dados = {
-        id_profissional: id_cadastro,  
-        id_servico: document.getElementById("id_servico").value,
-        data_hora: data_hora
-      };
-
-      try {
-        const response = await fetch("http://10.92.3.187:5000/agenda", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(dados)
-        });
 
         if (response.ok) {
           const result = await response.json();
@@ -122,7 +132,7 @@
           Swal.fire({
             icon: "error",
             title: "Oops...",
-            text: error.error || "Erro ao cadastrar serviço!"
+            text: error.error || "Erro ao cadastrar disponibilidade!"
           });
         }
       } catch (err) {
@@ -133,75 +143,13 @@
         });
       }
     });
-  </script>
 
-  <script>
-    document.addEventListener("DOMContentLoaded", async () => {
-      const token = localStorage.getItem("token");
-      const select = document.getElementById("id_servico");
-
-      try {
-        const response = await fetch("http://10.92.3.187:5000/servico", {
-          method: "GET",
-          headers: {
-            "Authorization": `Bearer ${token}`
-          }
-        });
-
-        if (!response.ok) throw new Error("Erro ao buscar serviços");
-
-        const servicos = await response.json();
-        select.innerHTML = `<option value="">Selecione o serviço ></option>`;
-
-        if (!servicos.length) {
-          select.innerHTML += `<option disabled>Nenhum serviço cadastrado</option>`;
-          return;
-        }
-
-        servicos.forEach(s => {
-          // Se vier número decimal
-          let duracao = s.duracao_horas;
-          if (duracao !== null && !isNaN(duracao)) {
-            const horas = Math.floor(duracao);
-            const minutos = Math.round((duracao - horas) * 60);
-            duracao = `${String(horas).padStart(2, "0")}:${String(minutos).padStart(2, "0")}`;
-          } else if (typeof duracao === "string") {
-            // caso venha algo tipo "01:30:00"
-            duracao = duracao.substring(0, 5);
-          } else {
-            duracao = "00:00";
-          }
-
-          const option = document.createElement("option");
-          option.value = s.id_servico;
-          option.textContent = `${s.descricao} — R$${s.valor.toFixed(2)} — ${duracao}`;
-          select.appendChild(option);
-        });
-
-      } catch (error) {
-        console.error("Erro ao carregar serviços:", error);
-        Swal.fire({
-          title: "Erro!",
-          text: "Não foi possível carregar os serviços.",
-          icon: "error"
-        });
-      }
-    });
-  </script>
-
-  <script>
+    // Script de logout permanece igual ao seu
     document.addEventListener('DOMContentLoaded', function () {
       const logoutBtn = document.querySelector('.btn-logout');
-
-      if (!logoutBtn) {
-        console.error('Botão de logout não encontrado (seletor .btn-logout).');
-        return;
-      }
-
+      if (!logoutBtn) return;
       logoutBtn.addEventListener('click', function (e) {
         e.preventDefault();
-
-        // Confirmação com SweetAlert2
         Swal.fire({
           title: 'Deseja realmente sair?',
           text: 'Você precisará fazer login novamente.',
@@ -213,14 +161,9 @@
         }).then((result) => {
           if (result.isConfirmed) {
             try {
-              // Remova o token onde você o guarda
-              localStorage.removeItem('token');        // chave mais comum
-              sessionStorage.removeItem('token');      
-
-              // Apagar cookie de sessão
+              localStorage.removeItem('token');
+              sessionStorage.removeItem('token');
               document.cookie = 'session=; Max-Age=0; path=/;';
-
-              // Mensagem de sucesso e redirecionamento
               Swal.fire({
                 icon: 'success',
                 title: 'Desconectado',
@@ -230,17 +173,13 @@
                 window.location.href = 'login.html';
               });
             } catch (err) {
-              console.error('Erro ao efetuar logout:', err);
               Swal.fire('Erro', 'Não foi possível deslogar. Tente novamente.', 'error');
             }
-          } else {
-            // usuário cancelou — não faz nada
           }
         });
       });
     });
   </script>
-
 </body>
-
 </html>
+<!--  -->

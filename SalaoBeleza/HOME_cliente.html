@@ -6,17 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lumiére - HOME</title>
     <link rel="stylesheet" href="assets/css/HOME_cliente.css">
-
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
     <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Playfair+Display:ital,wght@1,700&display=swap" rel="stylesheet">
-
     <script src="assets/js/seguranca.js" defer></script>
 </head>
 
 <body>
-
     <header>
         <img src="assets/img/logo.png" alt="LUMIÉRE - Beleza | Estética | Bem-estar" class="logo">
         <nav>
@@ -37,12 +33,15 @@
                     <option>Selecione o serviço</option>
                 </select>
             </div>
-
             <div class="campo">
                 <label for="profissional">Selecione o profissional que deseja:</label>
                 <select id="profissional">
                     <option>Selecione o profissional</option>
                 </select>
+            </div>
+            <div class="campo">
+                <label for="data">Selecione o dia desejado:</label>
+                <input type="date" id="data" required>
             </div>
         </div>
 
@@ -63,25 +62,20 @@
                     <span>Avenida das flores</span>
                 </div>
             </div>
-
             <div class="footer-center">
                 <img src="assets/img/logo.png" alt="Logo Lumiére" class="logorodape">
             </div>
         </div>
-
         <div class="footer-bottom">
             <span>© 2025. Todos os direitos reservados.</span>
         </div>
     </footer>
 
     <script>
-        
-           //MOSTRAR PRIMEIRO NOME DO USUÁRIO
-        
+        // MOSTRAR PRIMEIRO NOME DO USUÁRIO
         document.addEventListener("DOMContentLoaded", () => {
             const nomeCompleto = localStorage.getItem("nome");
             const nomeSpan = document.getElementById("nome-usuario");
-
             if (nomeCompleto && nomeSpan) {
                 const primeiroNome = nomeCompleto.split(" ")[0];
                 nomeSpan.textContent = primeiroNome;
@@ -99,9 +93,7 @@
             configurarEventos();
         });
 
-      
-          // LOGOUT
-        
+        // LOGOUT
         document.querySelector(".btn-logout").addEventListener("click", function (e) {
             e.preventDefault();
 
@@ -129,15 +121,14 @@
             });
         });
 
-        
-            //CARREGAR SERVIÇOS
-        
+        // CARREGAR SERVIÇOS
         async function carregarServicos() {
             try {
                 const response = await fetch(`${API_URL}/servico`);
                 const servicos = await response.json();
 
                 const select = document.getElementById("servico");
+                select.innerHTML = `<option>Selecione o serviço</option>`;
                 servicos.forEach(s => {
                     select.innerHTML += `<option value="${s.id_servico}">${s.descricao}</option>`;
                 });
@@ -153,19 +144,29 @@
                 const id_servico = this.value;
                 if (!id_servico) return;
                 await carregarProfissionais(id_servico);
+                limparHorarios();
             });
 
             document.getElementById("profissional").addEventListener("change", function () {
-                const id_profissional = this.value;
-                const id_servico = document.getElementById("servico").value;
-                if (!id_profissional || !id_servico) return;
-                carregarHorarios(id_profissional, id_servico);
+                limparHorarios();
             });
+
+            document.getElementById("data").addEventListener("change", function () {
+                limparHorarios();
+            });
+
+            // Carrega horários só após os três estarem definidos
+            document.getElementById("servico").addEventListener("change", carregarHorariosCliente);
+            document.getElementById("profissional").addEventListener("change", carregarHorariosCliente);
+            document.getElementById("data").addEventListener("change", carregarHorariosCliente);
         }
 
-        
-          // CARREGAR PROFISSIONAIS DO SERVIÇO
-        
+        // LIMPA HORÁRIOS DISPONÍVEIS
+        function limparHorarios() {
+            document.getElementById("formHorarios").innerHTML = "";
+        }
+
+        // CARREGAR PROFISSIONAIS DO SERVIÇO
         async function carregarProfissionais(id_servico) {
             try {
                 const response = await fetch(`${API_URL}/profissionais-por-servico?id_servico=${id_servico}`);
@@ -184,16 +185,17 @@
             }
         }
 
-        
-         //  CARREGAR HORÁRIOS DISPONÍVEIS
-       
-        async function carregarHorarios(id_profissional, id_servico) {
+        // CARREGAR HORÁRIOS DISPONÍVEIS COM DATA
+        async function carregarHorariosCliente() {
+            const id_servico = document.getElementById("servico").value;
+            const id_profissional = document.getElementById("profissional").value;
+            const data = document.getElementById("data").value;
+            if (!id_servico || !id_profissional || !data) return;
 
             try {
                 const response = await fetch(
-                    `${API_URL}/horarios-disponiveis?id_profissional=${id_profissional}&id_servico=${id_servico}`
+                    `${API_URL}/horarios-disponiveis?id_cadastro=${id_profissional}&id_servico=${id_servico}&data=${data}`
                 );
-
                 const horarios = await response.json();
                 const form = document.getElementById("formHorarios");
                 form.innerHTML = "";
@@ -220,9 +222,7 @@
             }
         }
 
-        
-          // ENVIAR AGENDAMENTO + RECARREGAR HORÁRIOS
-        
+        // ENVIAR AGENDAMENTO + RECARREGAR HORÁRIOS
         document.getElementById("formHorarios").addEventListener("submit", async function (e) {
             e.preventDefault();
 
@@ -242,7 +242,7 @@
             const id_servico = document.getElementById("servico").value;
             const id_profissional = document.getElementById("profissional").value;
 
-            const payload = { id_profissional, id_servico, data_hora };
+            const payload = { id_cadastro: id_profissional, id_servico, data_hora };
 
             try {
                 const response = await fetch(`${API_URL}/agenda/criar`, {
@@ -269,7 +269,7 @@
                 });
 
                 setTimeout(() => {
-                    carregarHorarios(id_profissional, id_servico);
+                    carregarHorariosCliente();
                 }, 1200);
 
             } catch (e) {
@@ -281,7 +281,6 @@
                 });
             }
         });
-
     </script>
 
 </body>
