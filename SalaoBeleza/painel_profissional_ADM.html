@@ -13,24 +13,23 @@
     href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Playfair+Display:ital,wght@1,700&display=swap"
     rel="stylesheet">
 
-    <script src="assets/js/seguranca_adm.js" defer></script>
+  <script src="assets/js/seguranca.js" defer></script>
 </head>
 
 <body>
   <img src="assets/img/fundo.vermelho.png" alt="" class="background">
-  <header>
-    <img src="assets/img/logo.png" alt="LUMIÉRE - Beleza | Estética | Bem-estar" class="logo">
+    <header>
+        <img src="assets/img/logo.png" alt="LUMIÉRE - Beleza | Estética | Bem-estar" class="logo">
         <nav>
             <a class="btn-logout" style="cursor: pointer;">LOGOUT</a>
             <a href="edicao_dados_ADM.html">EDIÇÃO DE DADOS</a>
             <a href="cadastroservico_ADM(profissional).html">CADASTRAR SERVIÇOS</a>
-            <a href="index.cadastroservico_ADM.html">CADASTRAR AGENDAMENTO</a>
             <a href="horaios_disponiveisADM.html">GERENCIAR HORÁRIOS</a>
             <a href="painel_administrativo_ADM.html">PAINEL ADMINISTRATIVO</a>
             <a href="painel_profissional_ADM.html">PAINEL PROFISSIONAL</a>
             <a href="listagem_adm.html">LISTAGEM</a>
         </nav>
-  </header>
+    </header>
 
   <main>
     <section class="cadastro-container">
@@ -39,21 +38,26 @@
         <p class="subtitulo">Explore seus atendimentos visualize sua agenda de horários</p>
       </div>
 
-      <table class="tabela-servicos">
-        <thead>
-          <tr>
-            <th>DATA</th>
-            <th>DESCRIÇÃO</th>
-            <th>HORÁRIO</th>
-            <th>DURAÇÃO</th>
-            <th>AÇÃO</th>
-          </tr>
-        </thead>
-        <tbody id="tabela-body">
-
-        </tbody>
-      </table>
-
+      <div class="tabela-container">
+        <table class="tabela-servicos">
+          <thead>
+            <tr>
+              <th>DATA</th>
+              <th>DESCRIÇÃO</th>
+              <th>HORÁRIO</th>
+              <th>DURAÇÃO</th>
+              <th>PROFISSIONAL</th>
+              <th>VALOR</th>
+              <th>AÇÃO</th>
+            </tr>
+          </thead>
+          <tbody id="tabela-body">
+            <tr id="loading-row">
+              <td colspan="7" style="text-align: center; padding: 20px;">Carregando agendamentos...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
       <div class="botoes-acao">
         <a href="index.cadastroservico.html" style="text-decoration: none; font-size: 13.5px;" class="btn-acao">+
@@ -92,71 +96,256 @@
   </footer>
 
   <script>
-
-      // Exibir o nome do usuário no painel
-      document.addEventListener('DOMContentLoaded', function () {
-        const nomeCompleto = localStorage.getItem('nome'); // Pega o nome salvo no login
-        const nomeSpan = document.getElementById('nome-usuario');
-
-        if (nomeCompleto && nomeSpan) {
-          // Pega apenas o primeiro nome (antes do espaço)
-          const primeiroNome = nomeCompleto.split(' ')[0];
-          nomeSpan.textContent = primeiroNome;
-        } else if (nomeSpan) {
-          nomeSpan.textContent = "Usuário"; // fallback caso não haja nome salvo
-        }
-      });
-
+    const API_URL = 'http://10.92.3.168:5000';
     const tabela = document.getElementById("tabela-body");
 
-
-    // Função para adicionar linha manual (exemplo)
-    function adicionarServico(data, descricao, horario, duracao) {
-      const row = document.createElement("tr");
-      row.innerHTML = `
-      <td contenteditable="false">${data}</td>
-      <td contenteditable="false">${descricao}</td>
-      <td contenteditable="false">${horario}</td>
-      <td contenteditable="false">${duracao}</td>
-      <td><img src="assets/img/editar.png" class="editar"></td>
-    `;
-      tabela.appendChild(row);
+    function getToken() {
+      return localStorage.getItem('token') || sessionStorage.getItem('token');
     }
 
-    // Exemplo de teste
-    adicionarServico("30/09/2025", "Corte de cabelo", "14:00", "2 horas");
+    function getId() {
+      return localStorage.getItem('id_cadastro');
+    }
 
-    // Tornar editável ao clicar no ícone
-    tabela.addEventListener("click", (e) => {
-      if (e.target.classList.contains("editar")) {
-        const row = e.target.closest("tr");
-        const editando = row.getAttribute("data-editando") === "true";
+    function getNome() {
+      return localStorage.getItem('nome');
+    }
 
-        if (!editando) {
-          // Ativar edição
-          row.querySelectorAll("td[contenteditable]").forEach(td => td.contentEditable = "true");
-          e.target.src = "assets/img/salvar.png";
-          row.setAttribute("data-editando", "true");
-        } else {
-          // Salvar edição
-          row.querySelectorAll("td[contenteditable]").forEach(td => td.contentEditable = "false");
-          e.target.src = "assets/img/editar.png";
-          row.setAttribute("data-editando", "false");
+    function formatarDataHora(dataHoraStr) {
+      const data = new Date(dataHoraStr);
+      const dataFormatada = data.toLocaleDateString('pt-BR');
+      const horaFormatada = data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      return { data: dataFormatada, hora: horaFormatada };
+    }
 
-          const valores = Array.from(row.children).slice(0, 4).map(td => td.innerText);
-          console.log("Salvo:", valores);
-        }
-      }
-    });
-  </script>
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      const logoutButtons = document.querySelectorAll('.btn-logout, .logoutcabecalho');
+    function formatarValor(valor) {
+      return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
 
-      if (!logoutButtons.length) {
-        console.error('Botões de logout não encontrados.');
+    async function cancelarAgendamento(idAgenda, btnElement) {
+      const result = await Swal.fire({
+        title: 'Cancelar agendamento?',
+        text: 'Esta ação não poderá ser desfeita!',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'SIM, CANCELAR',
+        cancelButtonText: 'NÃO',
+        confirmButtonColor: '#d32f2f',
+        reverseButtons: true
+      });
+
+      if (!result.isConfirmed) {
         return;
       }
+
+      btnElement.disabled = true;
+      btnElement.textContent = 'Cancelando...';
+
+      try {
+        const token = getToken();
+        const idProfissional = getId();
+
+        if (!token) {
+          throw new Error('Token não encontrado');
+        }
+
+        if (!idProfissional) {
+          throw new Error('ID do profissional não encontrado');
+        }
+
+        const response = await fetch(`${API_URL}/agenda/${idAgenda}?id_profissional=${idProfissional}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.status === 401) {
+          localStorage.removeItem('token');
+          sessionStorage.removeItem('token');
+          Swal.fire({
+            icon: 'warning',
+            title: 'Sessão expirada',
+            text: 'Faça login novamente.'
+          }).then(() => {
+            window.location.href = 'login.html';
+          });
+          return;
+        }
+
+        if (response.status === 403) {
+          const errorData = await response.json().catch(() => ({}));
+          Swal.fire({
+            icon: 'error',
+            title: 'Acesso negado',
+            text: errorData.error || 'Você não pode cancelar este agendamento.'
+          });
+          btnElement.disabled = false;
+          btnElement.textContent = 'CANCELAR';
+          return;
+        }
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `Erro na requisição: ${response.status}`);
+        }
+
+        const responseData = await response.json();
+
+        Swal.fire({
+          icon: 'success',
+          title: 'Agendamento cancelado!',
+          text: responseData.message || 'O agendamento foi removido com sucesso.',
+          showConfirmButton: false,
+          timer: 1500
+        });
+
+        carregarAgendamentos();
+
+      } catch (error) {
+        btnElement.disabled = false;
+        btnElement.textContent = 'CANCELAR';
+
+        Swal.fire({
+          icon: 'error',
+          title: 'Erro ao cancelar',
+          text: error.message || 'Não foi possível cancelar o agendamento. Tente novamente.',
+          confirmButtonText: 'OK'
+        });
+      }
+    }
+
+    async function carregarAgendamentos() {
+  try {
+    const idCadastro = getId();
+    const token = getToken();
+    const nome = getNome();
+
+    if (!idCadastro) {
+      tabela.innerHTML = `
+        <tr>
+          <td colspan="7" style="text-align: center; padding: 20px; color: #d32f2f;">
+            ID de cadastro não encontrado. Faça login novamente.
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    if (!token) {
+      tabela.innerHTML = `
+        <tr>
+          <td colspan="7" style="text-align: center; padding: 20px; color: #d32f2f;">
+            Token não encontrado. Faça login novamente.
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    
+    if (nome) {
+      const primeiroNome = nome.split(' ')[0]; // pega só o primeiro nome
+      document.getElementById('nome-usuario').textContent = primeiroNome;
+    }
+
+    const response = await fetch(`${API_URL}/agenda?id_cadastro=${idCadastro}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+
+        if (response.status === 401) {
+          localStorage.removeItem('token');
+          sessionStorage.removeItem('token');
+          tabela.innerHTML = `
+            <tr>
+              <td colspan="7" style="text-align: center; padding: 20px; color: #d32f2f;">
+                Sessão expirada. Faça login novamente.
+              </td>
+            </tr>
+          `;
+          Swal.fire({
+            icon: 'warning',
+            title: 'Sessão expirada',
+            text: 'Redirecionando para login...'
+          }).then(() => {
+            window.location.href = 'login.html';
+          });
+          return;
+        }
+
+        if (!response.ok) {
+          throw new Error(`Erro na requisição: ${response.status}`);
+        }
+
+        const agendamentos = await response.json();
+
+        tabela.innerHTML = '';
+
+        if (!Array.isArray(agendamentos) || agendamentos.length === 0) {
+          tabela.innerHTML = `
+            <tr>
+              <td colspan="7" style="text-align: center; padding: 20px;">
+                Nenhum agendamento futuro encontrado.
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        agendamentos.forEach(agendamento => {
+          const { data, hora } = formatarDataHora(agendamento.data_hora);
+          const valorFormatado = formatarValor(agendamento.valor);
+
+          const row = document.createElement("tr");
+          row.setAttribute('data-id', agendamento.id_agenda);
+          row.innerHTML = `
+            <td>${data}</td>
+            <td>${agendamento.servico}</td>
+            <td>${hora}</td>
+            <td>${agendamento.duracao}</td>
+            <td>${agendamento.profissional}</td>
+            <td>${valorFormatado}</td>
+            <td>
+              <button class="btn-cancelar" onclick="cancelarAgendamento(${agendamento.id_agenda}, this)">
+                CANCELAR
+              </button>
+            </td>
+          `;
+          tabela.appendChild(row);
+        });
+
+      } catch (error) {
+        tabela.innerHTML = `
+          <tr>
+            <td colspan="7" style="text-align: center; padding: 20px; color: #d32f2f;">
+              Erro ao carregar agendamentos. Por favor, tente novamente.
+            </td>
+          </tr>
+        `;
+
+        Swal.fire({
+          icon: 'error',
+          title: 'Erro ao carregar dados',
+          text: 'Não foi possível carregar os agendamentos. Verifique sua conexão.',
+          confirmButtonText: 'Tentar novamente'
+        }).then((result) => {
+          if (result.isConfirmed) {
+            carregarAgendamentos();
+          }
+        });
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      carregarAgendamentos();
+
+      const logoutButtons = document.querySelectorAll('.btn-logout, .logoutcabecalho');
 
       logoutButtons.forEach(function (btn) {
         btn.addEventListener('click', function (e) {
@@ -172,30 +361,30 @@
             reverseButtons: true
           }).then((result) => {
             if (result.isConfirmed) {
-              try {
-                localStorage.removeItem('token');
-                sessionStorage.removeItem('token');
-                document.cookie = 'session=; Max-Age=0; path=/;';
+              localStorage.removeItem('token');
+              sessionStorage.removeItem('token');
+              localStorage.removeItem('id_cadastro');
+              localStorage.removeItem('nome');
+              localStorage.removeItem('email');
+              localStorage.removeItem('tipo');
+              document.cookie = 'session=; Max-Age=0; path=/;';
 
-                Swal.fire({
-                  icon: 'success',
-                  title: 'Desconectado',
-                  showConfirmButton: false,
-                  timer: 1200
-                }).then(() => {
-                  window.location.href = 'login.html';
-                });
-              } catch (err) {
-                console.error('Erro ao efetuar logout:', err);
-                Swal.fire('Erro', 'Não foi possível deslogar. Tente novamente.', 'error');
-              }
+              Swal.fire({
+                icon: 'success',
+                title: 'Desconectado',
+                showConfirmButton: false,
+                timer: 1200
+              }).then(() => {
+                window.location.href = 'login.html';
+              });
             }
           });
         });
       });
     });
-  </script>
 
+    setInterval(carregarAgendamentos, 30000); 
+  </script>
 
 </body>
 

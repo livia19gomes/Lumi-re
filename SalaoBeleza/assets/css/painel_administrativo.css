@@ -284,6 +284,7 @@ main {
     display: flex;
     justify-content: center;
     padding-top: 25px;
+    margin-right: 13%;
 }
 
 .footer-bottom {

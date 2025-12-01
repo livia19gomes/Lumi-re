@@ -35,7 +35,7 @@ header {
     justify-content: space-between;
     align-items: center;
     background-color: #5b3b3a;
-    padding: 10px 40px;
+    padding: 55px 40px;
     width: 100%;
     overflow-x: auto;
     overflow-y: hidden;
@@ -259,6 +259,7 @@ nav a:hover {
     display: flex;
     justify-content: center;
     padding-top: 25px;
+    margin-right: 13%;
 }
 
 .footer-bottom {

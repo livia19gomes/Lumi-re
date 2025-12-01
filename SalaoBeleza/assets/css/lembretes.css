@@ -36,8 +36,7 @@ header {
   justify-content: space-between;
   align-items: center;
   background-color: #5b3b3a;
-  padding: 20px 40px;
-  overflow-x: auto;
+  padding: 10px 40px;
   white-space: nowrap;
   flex-wrap: nowrap;
 }
@@ -199,11 +198,11 @@ nav a:hover {
 }
 
 .logorodape {
-  height: 70px;
-  display: flex;
-  justify-content: center;
-  padding-top: 25px;
-  margin-right: 139px;
+    height: 70px;
+    display: flex;
+    justify-content: center;
+    padding-top: 25px;
+    margin-right: 13%;
 }
 
 .footer-bottom {
@@ -243,6 +242,10 @@ nav a:hover {
 @media (max-width: 480px) {
   header {
     padding: 20px 20px;
+  }
+
+  .logo{
+      width: 104px;
   }
 
   .cadastro-container {
@@ -286,6 +289,7 @@ nav a:hover {
 @media (max-width: 320px) {
   header {
     padding: 25px 15px;
+    overflow: auto;
   }
 
   .decorative-line h1 {

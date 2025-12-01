@@ -24,7 +24,6 @@
             <a class="btn-logout" style="cursor: pointer;">LOGOUT</a>
             <a href="edicao_dados_ADM.html">EDIÇÃO DE DADOS</a>
             <a href="cadastroservico_ADM(profissional).html">CADASTRAR SERVIÇOS</a>
-            <a href="index.cadastroservico_ADM.html">CADASTRAR AGENDAMENTO</a>
             <a href="horaios_disponiveisADM.html">GERENCIAR HORÁRIOS</a>
             <a href="painel_administrativo_ADM.html">PAINEL ADMINISTRATIVO</a>
             <a href="painel_profissional_ADM.html">PAINEL PROFISSIONAL</a>
@@ -92,75 +91,95 @@
                 <span>© 2025. Todos os direitos reservados.</span>
             </div>
         </footer>
-    <script>
-        document.getElementById("formCadastro").addEventListener("submit", async function (e) {
-            e.preventDefault();
+<script>
+    document.getElementById("formCadastro").addEventListener("submit", async function (e) {
+        e.preventDefault();
 
-            const nome = document.getElementById("nome").value.trim();
-            const email = document.getElementById("email").value.trim();
-            const telefone = document.getElementById("telefone").value.trim();
-            const senha = document.getElementById("senha").value;
+        const nome = document.getElementById("nome").value.trim();
+        const email = document.getElementById("email").value.trim();
+        const telefone = document.getElementById("telefone").value.trim();
+        const senha = document.getElementById("senha").value;
 
-            if (nome.length < 3) {
-                Swal.fire("Atenção", "O nome deve ter pelo menos 3 caracteres.", "warning");
-                return;
-            }
+        if (nome.length < 3) {
+            Swal.fire("Atenção", "O nome deve ter pelo menos 3 caracteres.", "warning");
+            return;
+        }
 
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(email)) {
-                Swal.fire("Atenção", "Digite um e-mail válido.", "warning");
-                return;
-            }
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            Swal.fire("Atenção", "Digite um e-mail válido.", "warning");
+            return;
+        }
 
-            const telefoneRegex = /^\d{10,11}$/;
-            if (!telefoneRegex.test(telefone)) {
-                Swal.fire("Atenção", "O telefone deve ter 10 ou 11 dígitos numéricos.", "warning");
-                return;
-            }
+        const telefoneRegex = /^\d{10,11}$/;
+        if (!telefoneRegex.test(telefone)) {
+            Swal.fire("Atenção", "O telefone deve ter 10 ou 11 dígitos numéricos.", "warning");
+            return;
+        }
 
-            const senhaRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
-            if (!senhaRegex.test(senha)) {
-                Swal.fire("Atenção", "A senha deve ter no mínimo 8 caracteres, incluindo maiúscula, minúscula, número e caractere especial.", "warning");
-                return;
-            }
+        const senhaRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+        if (!senhaRegex.test(senha)) {
+            Swal.fire("Atenção", "A senha deve ter no mínimo 8 caracteres, incluindo maiúscula, minúscula, número e caractere especial.", "warning");
+            return;
+        }
 
-            const dados = { nome, email, telefone, senha, tipo: "adm" };
+        // Pega o token do ADM logado
+        const token = localStorage.getItem('token');
+        
+        if (!token) {
+            Swal.fire("Atenção", "Você precisa estar logado como ADM para cadastrar outro administrador.", "warning");
+            setTimeout(() => {
+                window.location.href = 'login_ADM.html';
+            }, 2000);
+            return;
+        }
 
-            try {
-                const response = await fetch("http://10.92.3.168:5000/cadastro", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify(dados)
+        const dados = { 
+            nome, 
+            email, 
+            telefone, 
+            senha, 
+            tipo: "adm" 
+        };
+
+        try {
+            const response = await fetch("http://10.92.3.168:5000/cadastro", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + token  // ← TOKEN ADICIONADO AQUI
+                },
+                body: JSON.stringify(dados)
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                Swal.fire({
+                    icon: "success",
+                    title: "Sucesso!",
+                    text: result.message
+                }).then(() => {
+                    window.location.href = "listagem_adm.html";  // redireciona para listagem após criar ADM
                 });
-
-                if (response.ok) {
-                    const result = await response.json();
-                    Swal.fire({
-                        icon: "success",
-                        title: "Sucesso!",
-                        text: result.message
-                    }).then(() => {
-                        window.location.href = "login_ADM.html";
-                    });
-                } else {
-                    const error = await response.json();
-                    Swal.fire({
-                        icon: "error",
-                        title: "Oops...",
-                        text: error.error || "Erro ao cadastrar!"
-                    });
-                }
-            } catch (err) {
+            } else {
+                const error = await response.json();
                 Swal.fire({
                     icon: "error",
-                    title: "Falha na conexão",
-                    text: "Não foi possível conectar ao servidor."
+                    title: "Oops...",
+                    text: error.error || "Erro ao cadastrar!"
                 });
             }
-        });
-    </script>
+        } catch (err) {
+            console.error('Erro:', err);
+            Swal.fire({
+                icon: "error",
+                title: "Falha na conexão",
+                text: "Não foi possível conectar ao servidor."
+            });
+        }
+    });
+</script>
+
     <script>
         function toggleSenha() {
             const senhaInput = document.getElementById("senha");

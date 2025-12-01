@@ -66,27 +66,28 @@
       <span>© 2025. Todos os direitos reservados.</span>
     </div>
   </footer>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Sessão expirada!',
+        text: 'Faça login novamente.',
+        confirmButtonText: 'OK'
+      }).then(() => {
+        window.location.href = 'login.html';
+      });
+      return;
+    }
 
-  <script>
-    //Verificação de token e logout
-    document.addEventListener('DOMContentLoaded', function () {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        Swal.fire({
-          icon: 'warning',
-          title: 'Sessão expirada!',
-          text: 'Faça login novamente.',
-          confirmButtonText: 'OK'
-        }).then(() => {
-          window.location.href = 'login.html';
-        });
-        return;
-      }
-
-      const logoutBtn = document.querySelector('.btn-logout');
+    // Logout
+    const logoutBtn = document.querySelector('.btn-logout');
+    if (logoutBtn) {
       logoutBtn.addEventListener('click', function (e) {
         e.preventDefault();
-
+        
         Swal.fire({
           title: 'Deseja realmente sair?',
           text: 'Você precisará fazer login novamente.',
@@ -110,115 +111,129 @@
           }
         });
       });
-
-      // Após verificar token, carrega os agendamentos
-      carregarAgendamentos(token);
-    });
-
-    //Função para listar agendamentos
-    function carregarAgendamentos(token) {
-      fetch('http://10.92.3.168:5000/agenda/meus-agendamentos', {
-        method: 'GET',
-        headers: {
-          'Authorization': 'Bearer ' + token,
-          'Content-Type': 'application/json'
-        }
-      })
-        .then(response => {
-          if (!response.ok) throw new Error('Erro ao buscar agendamentos.');
-          return response.json();
-        })
-        .then(data => {
-          const lista = document.getElementById('lista-reservas');
-          lista.innerHTML = '';
-
-          if (data.length === 0) {
-            lista.innerHTML = '<p style="color:#3b0000; text-align:center;">Nenhum agendamento encontrado.</p>';
-            return;
-          }
-
-          data.forEach(ag => {
-            const dataHora = new Date(ag.data_hora);
-            const dataFormatada = dataHora.toLocaleDateString('pt-BR', {
-              day: '2-digit', month: '2-digit', year: 'numeric'
-            });
-            const hora = dataHora.toLocaleTimeString('pt-BR', {
-              hour: '2-digit', minute: '2-digit'
-            });
-
-            const div = document.createElement('div');
-            div.classList.add('reserva-item');
-            div.innerHTML = `
-              <span> ${dataFormatada} - às ${hora} | ${ag.servico} (${ag.profissional})</span>
-              <img src="https://cdn-icons-png.flaticon.com/512/3096/3096673.png" 
-                   alt="Excluir" 
-                   class="btn-excluir" 
-                   data-id="${ag.id_agenda}">
-            `;
-            lista.appendChild(div);
-          });
-
-          // Ativa botões de exclusão
-          document.querySelectorAll('.btn-excluir').forEach(btn => {
-            btn.addEventListener('click', function () {
-              const id = this.dataset.id;
-              excluirAgendamento(id, token);
-            });
-          });
-        })
-        .catch(err => {
-          console.error(err);
-          document.getElementById('lista-reservas').innerHTML = `<p style="color:red;text-align:center;">Erro ao carregar agendamentos.</p>`;
-        });
     }
 
-    //Função para excluir agendamento
-    function excluirAgendamento(id, token) {
-      Swal.fire({
-        title: 'Deseja excluir este agendamento?',
-        text: 'Esta ação não poderá ser desfeita.',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Sim, excluir!',
-        cancelButtonText: 'Cancelar'
-      }).then((result) => {
-        if (result.isConfirmed) {
-          fetch(`http://10.92.3.168:5000/agenda/cliente/${id}`, {
-            method: 'DELETE',
-            headers: {
-              'Authorization': 'Bearer ' + token
-            }
-          })
-            .then(response => response.json())
-            .then(data => {
-              if (data.success || data.message === "Agendamento excluído") {
-                Swal.fire({
-                  icon: 'success',
-                  title: 'Agendamento removido!',
-                  timer: 1200,
-                  showConfirmButton: false
-                });
-                carregarAgendamentos(token);
-              } else {
-                Swal.fire({
-                  icon: 'error',
-                  title: 'Erro!',
-                  text: data.error || 'Falha ao excluir agendamento.'
-                });
-              }
-            })
-            .catch(err => {
-              console.error(err);
+    // Carrega agendamentos
+    carregarAgendamentos(token);
+  });
+
+  function carregarAgendamentos(token) {
+    const lista = document.getElementById('lista-reservas');
+
+    console.log('Iniciando carregamento de agendamentos...');
+    console.log('Token:', token ? 'Presente' : 'Ausente');
+
+    fetch('http://10.92.3.168:5000/agenda/meus-agendamentos', {
+      method: 'GET',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json'
+      }
+    })
+      .then(response => {
+        console.log('Status da resposta:', response.status);
+        if (!response.ok) {
+          return response.json().then(err => {
+            console.error('Erro do backend:', err);
+            throw new Error(err.error || 'Erro ao carregar agendamentos');
+          });
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log('Dados recebidos:', data);
+        lista.innerHTML = '';
+
+        if (!Array.isArray(data) || data.length === 0) {
+          lista.innerHTML = '<p style="color:#3b0000; text-align:center;">Nenhum agendamento encontrado.</p>';
+          return;
+        }
+
+        data.forEach(ag => {
+          const dataHora = new Date(ag.data_hora);
+          const dataFormatada = dataHora.toLocaleDateString('pt-BR', {
+            day: '2-digit', 
+            month: '2-digit', 
+            year: 'numeric'
+          });
+          const hora = dataHora.toLocaleTimeString('pt-BR', {
+            hour: '2-digit', 
+            minute: '2-digit'
+          });
+
+          const div = document.createElement('div');
+          div.classList.add('reserva-item');
+          div.innerHTML = `
+            <span>${dataFormatada} - às ${hora} | ${ag.servico} (${ag.profissional})</span>
+            <img src="https://cdn-icons-png.flaticon.com/512/3096/3096673.png"
+                 alt="Excluir"
+                 class="btn-excluir"
+                 data-id="${ag.id_agenda}"
+                 style="width:20px; height:20px; cursor:pointer;">
+          `;
+          lista.appendChild(div);
+        });
+
+        // Ativa os botões de exclusão
+        document.querySelectorAll('.btn-excluir').forEach(btn => {
+          btn.addEventListener('click', function () {
+            const id = this.dataset.id;
+            excluirAgendamento(id, token);
+          });
+        });
+      })
+      .catch(err => {
+        console.error('ERRO carregarAgendamentos:', err);
+        lista.innerHTML = '<p style="color:red;text-align:center;">Erro ao carregar agendamentos.</p>';
+      });
+  }
+
+  function excluirAgendamento(id, token) {
+    Swal.fire({
+      title: 'Deseja excluir este agendamento?',
+      text: 'Esta ação não poderá ser desfeita.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sim, excluir!',
+      cancelButtonText: 'Cancelar'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        fetch(`http://10.92.3.168:5000/agenda/cliente/${id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': 'Bearer ' + token
+          }
+        })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success || data.message === "Agendamento excluído") {
+              Swal.fire({
+                icon: 'success',
+                title: 'Agendamento removido!',
+                timer: 1200,
+                showConfirmButton: false
+              });
+              carregarAgendamentos(token);
+            } else {
               Swal.fire({
                 icon: 'error',
                 title: 'Erro!',
-                text: 'Não foi possível excluir.'
+                text: data.error || 'Falha ao excluir agendamento.'
               });
+            }
+          })
+          .catch(err => {
+            console.error(err);
+            Swal.fire({
+              icon: 'error',
+              title: 'Erro!',
+              text: 'Não foi possível excluir.'
             });
-        }
-      });
-    }
-  </script>
+          });
+      }
+    });
+  }
+</script>
 
 </body>
 

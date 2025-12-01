@@ -38,7 +38,7 @@ header {
     justify-content: space-between;
     align-items: center;
     background-color: #5b3b3a;
-    padding: 10px 40px;
+    padding: 55px 40px;
     width: 100%;
     overflow-x: auto;
     overflow-y: hidden;
@@ -173,25 +173,29 @@ nav a:hover {
 /* TABELA */
 .tabela-wrapper {
     width: 100%;
-    overflow-x: auto;
     margin: 0 auto 40px;
 }
 
-.tabela-wrapper::-webkit-scrollbar {
+/* ÚLTIMA TABELA COM SCROLL HORIZONTAL */
+.tabela-wrapper:last-of-type {
+    overflow-x: auto;
+}
+
+.tabela-wrapper:last-of-type::-webkit-scrollbar {
     height: 8px;
 }
 
-.tabela-wrapper::-webkit-scrollbar-track {
+.tabela-wrapper:last-of-type::-webkit-scrollbar-track {
     background: rgba(0, 0, 0, 0.1);
     border-radius: 4px;
 }
 
-.tabela-wrapper::-webkit-scrollbar-thumb {
+.tabela-wrapper:last-of-type::-webkit-scrollbar-thumb {
     background: rgba(91, 59, 58, 0.5);
     border-radius: 4px;
 }
 
-.tabela-wrapper::-webkit-scrollbar-thumb:hover {
+.tabela-wrapper:last-of-type::-webkit-scrollbar-thumb:hover {
     background: rgba(91, 59, 58, 0.7);
 }
 
@@ -363,6 +367,8 @@ nav a:hover {
     display: flex;
     justify-content: center;
     padding-top: 25px;
+    margin-right: 13%;
+    
 }
 
 .footer-bottom {
@@ -671,6 +677,7 @@ nav a:hover {
 
     .logorodape {
         height: 50px;
+        
     }
 
     .footer-bottom {
