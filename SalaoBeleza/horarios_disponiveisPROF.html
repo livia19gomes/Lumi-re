@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Lumiére - Horários Profissional</title>
-  <link rel="stylesheet" href="SalaoBeleza/assets/css/horarios_dispniveisPROF.css" />
+  <link rel="stylesheet" href="assets/css/horarios_disponiveisADM.css" />
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <link
@@ -14,9 +14,9 @@
   <script src="assets/js/seguranca.js" defer></script>
 </head>
 <body>
-  <img src="SalaoBeleza/assets/img/fundo.vermelho.png" alt="" class="background" />
+  <img src="assets/img/fundo.vermelho.png" alt="" class="background" />
   <header class="cabecalho">
-    <img src="SalaoBeleza/assets/img/logo.png" alt="LUMIÉRE - Beleza | Estética | Bem-estar" class="logo" />
+    <img src="assets/img/logo.png" alt="LUMIÉRE" class="logo" />
     <nav>
       <a class="logoutcabecalho" style="cursor: pointer;">LOGOUT</a>
       <a href="edicao_dados.html">EDIÇÃO DE DADOS</a>
@@ -30,24 +30,16 @@
   </header>
 
   <main>
-    <script>
-      function sair() {
-        localStorage.clear();
-        sessionStorage.clear();
-        window.location.href = "/login.html";
-      }
-    </script>
-
     <section class="cadastro-container">
       <div class="decorative-line">
         <h1>Bem-vindo(a) <span id="nome-usuario">Nome!</span></h1>
-        <p class="subtitulo">Gerencie sua agenda profissional</p>
+        <p class="subtitulo">Gerencie sua disponibilidade semanal</p>
       </div>
 
       <section class="filtro-wrapper">
-        <input type="date" id="filtro-data" class="input-filtro" />
+        <input type="date" id="filtro-data-inicial" class="input-filtro" />
+        <input type="date" id="filtro-data-final" class="input-filtro" />
         <button id="btn-filtrar" class="btn-filtrar btn-acao">FILTRAR</button>
-        <button id="btn-hoje" class="btn-filtrar btn-acao">HOJE</button>
         <button id="btn-proximos-7" class="btn-filtrar btn-acao">PRÓXIMOS 7 DIAS</button>
         <span id="data-selecionada" class="data-selecionada">Próximos 7 dias</span>
       </section>
@@ -56,34 +48,36 @@
         <thead>
           <tr>
             <th>DATA</th>
-            <th>HORA</th>
-            <th>STATUS</th>
-            <th>AÇÃO</th>
+            <th>DIA DA SEMANA</th>
+            <th>HORÁRIO INÍCIO</th>
+            <th>HORÁRIO FIM</th>
+            <th>ORIGEM</th>
+            <th>AÇÕES</th>
           </tr>
         </thead>
         <tbody id="tabela-body"></tbody>
       </table>
 
       <div id="horarios-vazios" class="vazio-mensagem" style="display: none;">
-        Nenhum horário disponível encontrado para esta data.
+        Nenhuma disponibilidade encontrada para este período.
       </div>
-
+    </section>
   </main>
 
   <footer class="footer">
     <div class="footer1">
       <div class="footer-left">
         <div class="contact">
-          <img src="SalaoBeleza/assets/img/celular.icon.png" alt="Telefone" class="icon" />
+          <img src="assets/img/celular.icon.png" alt="Telefone" class="icon" />
           <span>(18)000000000</span>
         </div>
         <div class="contact">
-          <img src="SalaoBeleza/assets/img/location-icon.png" alt="Localização" class="icon" />
+          <img src="assets/img/location-icon.png" alt="Localização" class="icon" />
           <span>Avenida das flores</span>
         </div>
       </div>
       <div class="footer-center">
-        <img src="SalaoBeleza/assets/img/logo.png" alt="Logo Lumiére" class="logorodape" />
+        <img src="assets/img/logo.png" alt="Logo Lumiére" class="logorodape" />
       </div>
     </div>
     <div class="footer-bottom">
@@ -103,12 +97,20 @@
       } else if (nomeSpan) {
         nomeSpan.textContent = "Usuário";
       }
+      
+      // Define datas padrão (próximos 7 dias)
+      const hoje = new Date();
+      const daqui7 = new Date();
+      daqui7.setDate(hoje.getDate() + 6);
+      
+      document.getElementById('filtro-data-inicial').valueAsDate = hoje;
+      document.getElementById('filtro-data-final').valueAsDate = daqui7;
     });
 
     const token = localStorage.getItem("token");
     const API_BASE = "http://10.92.3.168:5000";
 
-    async function carregarHorarios(data = null) {
+    async function carregarHorarios(dataInicial = null, dataFinal = null) {
       const tabela = document.getElementById("tabela-body");
       const horariosVazios = document.getElementById("horarios-vazios");
 
@@ -124,12 +126,9 @@
           return;
         }
 
-        console.log("ID Cadastro:", idCadastro);
-        console.log("Data filtrada:", data || "Próximos 7 dias");
-
-        let url = `http://10.92.3.168:5000/disponibilidades/horarios?id_cadastro=${idCadastro}`;
-        if (data) {
-          url += `&data=${data}`;
+        let url = `${API_BASE}/disponibilidades/horarios?id_cadastro=${idCadastro}`;
+        if (dataInicial && dataFinal) {
+          url += `&data_inicial=${dataInicial}&data_final=${dataFinal}`;
         }
 
         console.log("Buscando:", url);
@@ -142,11 +141,8 @@
           },
         });
 
-        console.log("Status:", response.status);
-
         if (!response.ok) {
           const errorData = await response.json();
-          console.error("Erro da API:", errorData);
           throw new Error(errorData.error || "Erro ao buscar horários.");
         }
 
@@ -166,17 +162,25 @@
           const row = document.createElement("tr");
           row.innerHTML = `
             <td>${horario.data_formatada}</td>
-            <td>${horario.hora_formatada}</td>
-            <td><span class="status-disponivel">DISPONÍVEL</span></td>
+            <td>${horario.dia_semana_nome}</td>
+            <td>${horario.hora_inicio}</td>
+            <td>${horario.hora_fim}</td>
+            <td>${horario.origem}</td>
             <td>
-              <img src="assets/img/excluir.png" class="excluir-btn" style="cursor:pointer;" alt="Excluir" title="Excluir horário" data-data-hora="${horario.data_hora}">
+              <button class="btn-editar" data-data="${horario.data}" data-inicio="${horario.hora_inicio}" data-fim="${horario.hora_fim}">EDITAR</button>
+              <button class="btn-bloquear" data-data="${horario.data}">BLOQUEAR DIA</button>
             </td>
           `;
           tabela.appendChild(row);
         });
 
-        document.querySelectorAll(".excluir-btn").forEach((btn) => {
-          btn.addEventListener("click", excluirHorario);
+        // Adiciona eventos aos botões
+        document.querySelectorAll(".btn-editar").forEach((btn) => {
+          btn.addEventListener("click", editarHorario);
+        });
+
+        document.querySelectorAll(".btn-bloquear").forEach((btn) => {
+          btn.addEventListener("click", bloquearDia);
         });
 
       } catch (error) {
@@ -185,95 +189,156 @@
           icon: "error",
           title: "Erro ao carregar horários",
           text: error.message,
-          footer: "Verifique o console (F12) para mais detalhes",
         });
       }
     }
 
-    async function excluirHorario(e) {
-    const dataHora = e.target.dataset.dataHora;
-    const idCadastro = localStorage.getItem("id_cadastro");
+    async function editarHorario(e) {
+      const data = e.target.dataset.data;
+      const horaInicio = e.target.dataset.inicio;
+      const horaFim = e.target.dataset.fim;
 
-    Swal.fire({
-        title: "Confirmar exclusão?",
-        text: `Deseja realmente bloquear o horário ${dataHora}?`,
+      const { value: formValues } = await Swal.fire({
+        title: `Editar horário do dia ${data}`,
+        html: `
+          <input id="hora-inicio" type="time" class="swal2-input" value="${horaInicio}">
+          <input id="hora-fim" type="time" class="swal2-input" value="${horaFim}">
+        `,
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: 'SALVAR',
+        cancelButtonText: 'CANCELAR',
+        preConfirm: () => {
+          return {
+            hora_inicio: document.getElementById('hora-inicio').value,
+            hora_fim: document.getElementById('hora-fim').value
+          }
+        }
+      });
+
+      if (formValues) {
+        try {
+          const response = await fetch(`${API_BASE}/disponibilidade/dia-especifico`, {
+            method: "PUT",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              data: data,
+              hora_inicio: formValues.hora_inicio,
+              hora_fim: formValues.hora_fim
+            })
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error);
+          }
+
+          await Swal.fire({
+            icon: "success",
+            title: "Horário atualizado!",
+            timer: 1500,
+            showConfirmButton: false
+          });
+
+          // Recarrega a lista
+          const dataInicial = document.getElementById("filtro-data-inicial").value;
+          const dataFinal = document.getElementById("filtro-data-final").value;
+          carregarHorarios(dataInicial, dataFinal);
+
+        } catch (error) {
+          Swal.fire({
+            icon: "error",
+            title: "Erro!",
+            text: error.message,
+          });
+        }
+      }
+    }
+
+    async function bloquearDia(e) {
+      const data = e.target.dataset.data;
+
+      Swal.fire({
+        title: "Confirmar bloqueio?",
+        text: `Deseja bloquear o dia ${data}? Nenhum agendamento será possível neste dia.`,
         icon: "warning",
         showCancelButton: true,
         confirmButtonText: "SIM, BLOQUEAR",
         cancelButtonText: "CANCELAR",
         reverseButtons: true
-    }).then(async (result) => {
+      }).then(async (result) => {
         if (result.isConfirmed) {
-        try {
-            console.log("Excluindo horário:", dataHora);
-            
-            const response = await fetch(`${API_BASE}/excluir-horario-profissional?id_cadastro=${idCadastro}&data_hora=${encodeURIComponent(dataHora)}`, {
-            method: "DELETE",
-            headers: {
+          try {
+            const response = await fetch(`${API_BASE}/disponibilidade/dia-especifico?data=${data}`, {
+              method: "DELETE",
+              headers: {
                 Authorization: `Bearer ${token}`,
                 "Content-Type": "application/json",
-            },
+              },
             });
-
-            console.log("Status da exclusão:", response.status);
 
             if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || "Erro ao excluir horário.");
+              const errorData = await response.json();
+              throw new Error(errorData.error);
             }
 
-            const data = await response.json();
-            console.log("Resposta:", data);
-
-            // Recarregar a lista
-            await carregarHorarios(document.getElementById("filtro-data").value);
-            
-            Swal.fire({
-            icon: "success",
-            title: "Bloqueado!",
-            text: "Horário bloqueado com sucesso.",
-            timer: 1500,
-            showConfirmButton: false
+            await Swal.fire({
+              icon: "success",
+              title: "Dia bloqueado!",
+              timer: 1500,
+              showConfirmButton: false
             });
 
-        } catch (error) {
-            console.error("Erro ao excluir:", error);
+            // Recarrega a lista
+            const dataInicial = document.getElementById("filtro-data-inicial").value;
+            const dataFinal = document.getElementById("filtro-data-final").value;
+            carregarHorarios(dataInicial, dataFinal);
+
+          } catch (error) {
             Swal.fire({
-            icon: "error",
-            title: "Erro!",
-            text: error.message,
+              icon: "error",
+              title: "Erro!",
+              text: error.message,
             });
+          }
         }
-        }
-    });
+      });
     }
 
-
     document.getElementById("btn-filtrar").addEventListener("click", () => {
-      const data = document.getElementById("filtro-data").value;
-      if (data) {
-        document.getElementById("data-selecionada").textContent = `Data: ${data}`;
-        carregarHorarios(data);
+      const dataInicial = document.getElementById("filtro-data-inicial").value;
+      const dataFinal = document.getElementById("filtro-data-final").value;
+      
+      if (dataInicial && dataFinal) {
+        document.getElementById("data-selecionada").textContent = `Período: ${dataInicial} até ${dataFinal}`;
+        carregarHorarios(dataInicial, dataFinal);
       } else {
-        Swal.fire("Atenção", "Selecione uma data para filtrar.", "warning");
+        Swal.fire("Atenção", "Selecione as datas inicial e final.", "warning");
       }
     });
 
-    document.getElementById("btn-hoje").addEventListener("click", () => {
-      const hoje = new Date().toISOString().split("T")[0];
-      document.getElementById("filtro-data").value = hoje;
-      document.getElementById("data-selecionada").textContent = `Data: ${hoje}`;
-      carregarHorarios(hoje);
-    });
-
     document.getElementById("btn-proximos-7").addEventListener("click", () => {
-      document.getElementById("filtro-data").value = "";
+      const hoje = new Date();
+      const daqui7 = new Date();
+      daqui7.setDate(hoje.getDate() + 6);
+      
+      const dataInicialStr = hoje.toISOString().split('T')[0];
+      const dataFinalStr = daqui7.toISOString().split('T')[0];
+      
+      document.getElementById("filtro-data-inicial").value = dataInicialStr;
+      document.getElementById("filtro-data-final").value = dataFinalStr;
       document.getElementById("data-selecionada").textContent = "Próximos 7 dias";
-      carregarHorarios();
+      
+      carregarHorarios(dataInicialStr, dataFinalStr);
     });
 
     document.addEventListener("DOMContentLoaded", () => {
-      carregarHorarios();
+      const dataInicial = document.getElementById("filtro-data-inicial").value;
+      const dataFinal = document.getElementById("filtro-data-final").value;
+      carregarHorarios(dataInicial, dataFinal);
     });
   </script>
 

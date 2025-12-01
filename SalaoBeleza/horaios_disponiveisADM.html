@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lumiére - Gerenciar Horários (ADM)</title>
+  <link rel="stylesheet" href="assets/css/horarios_disponiveisADM.css" />
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Playfair+Display:ital,wght@1,700&display=swap"
+    rel="stylesheet"
+  />
+    <script src="assets/js/seguranca_adm.js" defer></script>
+</head>
+<body>
+  <img src="assets/img/fundo.vermelho.png" alt="" class="background" />
+  <header class="cabecalho">
+    <img src="assets/img/logo.png" alt="LUMIÉRE" class="logo" />
+        <nav>
+            <a class="logoutcabecalho" style="cursor: pointer;">LOGOUT</a>
+            <a href="edicao_dados_ADM.html">EDIÇÃO DE DADOS</a>
+            <a href="cadastroservico_ADM(profissional).html">CADASTRAR SERVIÇOS</a>
+            <a href="index.cadastroservico_ADM.html">CADASTRAR AGENDAMENTO</a>
+            <a href="horaios_disponiveisADM.html">GERENCIAR HORÁRIOS</a>
+            <a href="painel_administrativo_ADM.html">PAINEL ADMINISTRATIVO</a>
+            <a href="painel_profissional_ADM.html">PAINEL PROFISSIONAL</a>
+            <a href="listagem_adm.html">LISTAGEM</a>
+        </nav>
+  </header>
+
+  <main>
+    <section class="cadastro-container">
+      <div class="decorative-line">
+        <h1>Gerenciar Horários <span style="color: #ffffff;">(ADM)</span></h1>
+        <p class="subtitulo">Selecione um profissional para gerenciar a disponibilidade</p>
+      </div>
+
+      <!-- SELECT DE PROFISSIONAIS -->
+      <section class="filtro-wrapper">
+        <div style="flex: 1; min-width: 250px;">
+          <label for="select-profissional" style="display: block; margin-bottom: 8px; font-weight: 600; color: #ffffff;">
+            Selecione o Profissional:
+          </label>
+          <select id="select-profissional" class="input-filtro" style="width: 100%;">
+            <option value="">-- Escolha um profissional --</option>
+          </select>
+        </div>
+      </section>
+
+      <!-- FILTROS DE DATA (aparecem após selecionar profissional) -->
+      <section id="filtros-data" class="filtro-wrapper" style="display: none;">
+        <input type="date" id="filtro-data-inicial" class="input-filtro" />
+        <input type="date" id="filtro-data-final" class="input-filtro" />
+        <button id="btn-filtrar" class="btn-filtrar btn-acao">FILTRAR</button>
+        <button id="btn-proximos-7" class="btn-filtrar btn-acao">PRÓXIMOS 7 DIAS</button>
+        <span id="data-selecionada" class="data-selecionada">Próximos 7 dias</span>
+      </section>
+
+      <!-- TABELA -->
+      <div id="tabela-container" style="display: none;">
+        <table class="tabela-servicos">
+          <thead>
+            <tr>
+              <th>DATA</th>
+              <th>DIA DA SEMANA</th>
+              <th>HORÁRIO INÍCIO</th>
+              <th>HORÁRIO FIM</th>
+              <th>ORIGEM</th>
+              <th>AÇÕES</th>
+            </tr>
+          </thead>
+          <tbody id="tabela-body"></tbody>
+        </table>
+      </div>
+
+      <div id="horarios-vazios" class="vazio-mensagem" style="display: none;">
+        Nenhuma disponibilidade encontrada para este período.
+      </div>
+
+      <div id="selecione-profissional" class="vazio-mensagem">
+         Selecione um profissional para visualizar os horários disponíveis.
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer1">
+      <div class="footer-left">
+        <div class="contact">
+          <img src="assets/img/celular.icon.png" alt="Telefone" class="icon" />
+          <span>(18)000000000</span>
+        </div>
+        <div class="contact">
+          <img src="assets/img/location-icon.png" alt="Localização" class="icon" />
+          <span>Avenida das flores</span>
+        </div>
+      </div>
+      <div class="footer-center">
+        <img src="assets/img/logo.png" alt="Logo Lumiére" class="logorodape" />
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2025. Todos os direitos reservados.</span>
+    </div>
+  </footer>
+
+  <script>
+    const token = localStorage.getItem("token");
+    const API_BASE = "http://10.92.3.168:5000";
+    let profissionalSelecionado = null;
+
+    // ==================== CARREGAR PROFISSIONAIS ====================
+    document.addEventListener('DOMContentLoaded', async function () {
+      try {
+        const response = await fetch(`${API_BASE}/cadastro?tipo=profissional`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("Erro ao buscar profissionais");
+        }
+
+        const profissionais = await response.json();
+        const select = document.getElementById("select-profissional");
+
+        profissionais.forEach(prof => {
+          const option = document.createElement("option");
+          option.value = prof.id;
+          option.textContent = `${prof.nome} - ${prof.categoria || 'Sem categoria'}`;
+          select.appendChild(option);
+        });
+
+      } catch (error) {
+        console.error("Erro:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Erro ao carregar profissionais",
+          text: error.message,
+        });
+      }
+
+      // Define datas padrão
+      const hoje = new Date();
+      const daqui7 = new Date();
+      daqui7.setDate(hoje.getDate() + 6);
+      
+      document.getElementById('filtro-data-inicial').valueAsDate = hoje;
+      document.getElementById('filtro-data-final').valueAsDate = daqui7;
+    });
+
+    // ==================== SELECIONAR PROFISSIONAL ====================
+    document.getElementById("select-profissional").addEventListener("change", function() {
+      profissionalSelecionado = this.value;
+
+      if (profissionalSelecionado) {
+        document.getElementById("selecione-profissional").style.display = "none";
+        document.getElementById("filtros-data").style.display = "flex";
+        document.getElementById("tabela-container").style.display = "block";
+
+        // Carrega horários do profissional selecionado
+        const dataInicial = document.getElementById("filtro-data-inicial").value;
+        const dataFinal = document.getElementById("filtro-data-final").value;
+        carregarHorarios(dataInicial, dataFinal);
+      } else {
+        document.getElementById("selecione-profissional").style.display = "block";
+        document.getElementById("filtros-data").style.display = "none";
+        document.getElementById("tabela-container").style.display = "none";
+      }
+    });
+
+    // ==================== CARREGAR HORÁRIOS ====================
+    async function carregarHorarios(dataInicial = null, dataFinal = null) {
+      const tabela = document.getElementById("tabela-body");
+      const horariosVazios = document.getElementById("horarios-vazios");
+
+      if (!profissionalSelecionado) {
+        return;
+      }
+
+      try {
+        let url = `${API_BASE}/disponibilidades/horarios?id_cadastro=${profissionalSelecionado}`;
+        if (dataInicial && dataFinal) {
+          url += `&data_inicial=${dataInicial}&data_final=${dataFinal}`;
+        }
+
+        console.log("Buscando:", url);
+
+        const response = await fetch(url, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Erro ao buscar horários.");
+        }
+
+        const horarios = await response.json();
+        console.log("Horários recebidos:", horarios.length);
+        
+        tabela.innerHTML = "";
+
+        if (!horarios.length) {
+          horariosVazios.style.display = "block";
+          return;
+        }
+
+        horariosVazios.style.display = "none";
+
+        horarios.forEach((horario) => {
+          const badgeClass = horario.origem === "Horário padrão" ? "badge-padrao" : "badge-modificado";
+          const badgeText = horario.origem === "Horário padrão" ? "PADRÃO" : "MODIFICADO";
+
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td>${horario.data_formatada}</td>
+            <td><strong>${horario.dia_semana_nome}</strong></td>
+            <td><strong>${horario.hora_inicio}</strong></td>
+            <td><strong>${horario.hora_fim}</strong></td>
+            <td><span class="badge-origem ${badgeClass}">${badgeText}</span></td>
+            <td>
+              <button class="btn-editar" data-data="${horario.data}" data-inicio="${horario.hora_inicio}" data-fim="${horario.hora_fim}">EDITAR</button>
+              <button class="btn-bloquear" data-data="${horario.data}">BLOQUEAR</button>
+            </td>
+          `;
+          tabela.appendChild(row);
+        });
+
+        document.querySelectorAll(".btn-editar").forEach((btn) => {
+          btn.addEventListener("click", editarHorario);
+        });
+
+        document.querySelectorAll(".btn-bloquear").forEach((btn) => {
+          btn.addEventListener("click", bloquearDia);
+        });
+
+      } catch (error) {
+        console.error("Erro completo:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Erro ao carregar horários",
+          text: error.message,
+        });
+      }
+    }
+
+    // ==================== EDITAR HORÁRIO ====================
+    async function editarHorario(e) {
+      const data = e.target.dataset.data;
+      const horaInicio = e.target.dataset.inicio;
+      const horaFim = e.target.dataset.fim;
+
+      const { value: formValues } = await Swal.fire({
+        title: `✏️ Editar horário`,
+        html: `
+          <div style="text-align: left; margin: 20px 0;">
+            <p style="color: #666; margin-bottom: 20px;">
+              <strong>Data:</strong> ${data.split('-').reverse().join('/')}
+            </p>
+            <label style="display: block; margin-bottom: 8px; color: #333; font-weight: 600;">
+              Hora Início:
+            </label>
+            <input id="hora-inicio" type="time" class="swal2-input" value="${horaInicio}" 
+                   style="width: 100%; margin-bottom: 16px;">
+            
+            <label style="display: block; margin-bottom: 8px; color: #333; font-weight: 600;">
+              Hora Fim:
+            </label>
+            <input id="hora-fim" type="time" class="swal2-input" value="${horaFim}" 
+                   style="width: 100%;">
+          </div>
+        `,
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: 'Salvar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#667eea',
+        cancelButtonColor: '#f5576c',
+        width: '450px',
+        preConfirm: () => {
+          const inicio = document.getElementById('hora-inicio').value;
+          const fim = document.getElementById('hora-fim').value;
+          
+          if (!inicio || !fim) {
+            Swal.showValidationMessage('Preencha ambos os horários!');
+            return false;
+          }
+          
+          if (inicio >= fim) {
+            Swal.showValidationMessage('Hora fim deve ser maior que hora início!');
+            return false;
+          }
+          
+          return { hora_inicio: inicio, hora_fim: fim }
+        }
+      });
+
+      if (formValues) {
+        try {
+          const response = await fetch(`${API_BASE}/disponibilidade/dia-especifico`, {
+            method: "PUT",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              data: data,
+              hora_inicio: formValues.hora_inicio,
+              hora_fim: formValues.hora_fim,
+              id_cadastro: profissionalSelecionado
+            })
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error);
+          }
+
+          await Swal.fire({
+            icon: "success",
+            title: "✅ Horário atualizado!",
+            text: "As alterações foram salvas com sucesso.",
+            timer: 2000,
+            showConfirmButton: false,
+            timerProgressBar: true
+          });
+
+          const dataInicial = document.getElementById("filtro-data-inicial").value;
+          const dataFinal = document.getElementById("filtro-data-final").value;
+          carregarHorarios(dataInicial, dataFinal);
+
+        } catch (error) {
+          Swal.fire({
+            icon: "error",
+            title: "Erro!",
+            text: error.message,
+            confirmButtonColor: '#f5576c'
+          });
+        }
+      }
+    }
+
+    // ==================== BLOQUEAR DIA ====================
+    async function bloquearDia(e) {
+      const data = e.target.dataset.data;
+      const dataFormatada = data.split('-').reverse().join('/');
+
+      Swal.fire({
+        title: "Confirmar bloqueio?",
+        html: `
+          <p style="margin: 20px 0; color: #666;">
+            Deseja realmente bloquear o dia <strong>${dataFormatada}</strong>?
+          </p>
+          <p style="color: #f5576c; font-size: 14px;">
+            ⚠️ Nenhum agendamento será possível neste dia.
+          </p>
+        `,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Sim, bloquear",
+        cancelButtonText: "Cancelar",
+        confirmButtonColor: '#f5576c',
+        cancelButtonColor: '#667eea',
+        reverseButtons: true,
+        width: '450px'
+      }).then(async (result) => {
+        if (result.isConfirmed) {
+          try {
+            const response = await fetch(`${API_BASE}/disponibilidade/dia-especifico?data=${data}&id_cadastro=${profissionalSelecionado}`, {
+              method: "DELETE",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+            });
+
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.error);
+            }
+
+            await Swal.fire({
+              icon: "success",
+              title: "Dia bloqueado!",
+              text: "O dia foi bloqueado com sucesso.",
+              timer: 2000,
+              showConfirmButton: false,
+              timerProgressBar: true
+            });
+
+            const dataInicial = document.getElementById("filtro-data-inicial").value;
+            const dataFinal = document.getElementById("filtro-data-final").value;
+            carregarHorarios(dataInicial, dataFinal);
+
+          } catch (error) {
+            Swal.fire({
+              icon: "error",
+              title: "Erro!",
+              text: error.message,
+              confirmButtonColor: '#f5576c'
+            });
+          }
+        }
+      });
+    }
+
+    // ==================== FILTROS ====================
+    document.getElementById("btn-filtrar").addEventListener("click", () => {
+      const dataInicial = document.getElementById("filtro-data-inicial").value;
+      const dataFinal = document.getElementById("filtro-data-final").value;
+      
+      if (dataInicial && dataFinal) {
+        document.getElementById("data-selecionada").textContent = `Período: ${dataInicial} até ${dataFinal}`;
+        carregarHorarios(dataInicial, dataFinal);
+      } else {
+        Swal.fire("Atenção", "Selecione as datas inicial e final.", "warning");
+      }
+    });
+
+    document.getElementById("btn-proximos-7").addEventListener("click", () => {
+      const hoje = new Date();
+      const daqui7 = new Date();
+      daqui7.setDate(hoje.getDate() + 6);
+      
+      const dataInicialStr = hoje.toISOString().split('T')[0];
+      const dataFinalStr = daqui7.toISOString().split('T')[0];
+      
+      document.getElementById("filtro-data-inicial").value = dataInicialStr;
+      document.getElementById("filtro-data-final").value = dataFinalStr;
+      document.getElementById("data-selecionada").textContent = "Próximos 7 dias";
+      
+      carregarHorarios(dataInicialStr, dataFinalStr);
+    });
+
+    // ==================== LOGOUT ====================
+    document.addEventListener('DOMContentLoaded', function () {
+      const logoutButtons = document.querySelectorAll('.logoutcabecalho');
+
+      logoutButtons.forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+          e.preventDefault();
+
+          Swal.fire({
+            title: 'Deseja realmente sair?',
+            text: 'Você precisará fazer login novamente.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'SIM',
+            cancelButtonText: 'NÃO',
+            reverseButtons: true
+          }).then((result) => {
+            if (result.isConfirmed) {
+              try {
+                localStorage.removeItem('token');
+                sessionStorage.removeItem('token');
+                document.cookie = 'session=; Max-Age=0; path=/;';
+
+                Swal.fire({
+                  icon: 'success',
+                  title: 'Desconectado',
+                  showConfirmButton: false,
+                  timer: 1200
+                }).then(() => {
+                  window.location.href = 'login.html';
+                });
+              } catch (err) {
+                console.error('Erro ao efetuar logout:', err);
+                Swal.fire('Erro', 'Não foi possível deslogar. Tente novamente.', 'error');
+              }
+            }
+          });
+        });
+      });
+    });
+  </script>
+</body>
+</html>
