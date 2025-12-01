@@ -111,7 +111,7 @@
       }
 
       try {
-        const response = await fetch(`http://10.92.3.187:5000/cadastro/${usuarioId}`, {
+        const response = await fetch(`http://10.92.3.168:5000/cadastro/${usuarioId}`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -147,7 +147,7 @@
         const dados = { nome, email, telefone, senha, categoria };
 
         try {
-          const response = await fetch(`http://10.92.3.187:5000/cadastro/${usuarioId}`, {
+          const response = await fetch(`http://10.92.3.168:5000/cadastro/${usuarioId}`, {
             method: "PUT",
             headers: {
               "Content-Type": "application/json",
